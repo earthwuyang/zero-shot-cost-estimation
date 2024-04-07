@@ -4,8 +4,30 @@ import glob
 from cross_db_benchmark.benchmark_tools.database import DatabaseSystem
 from models.preprocessing.feature_statistics import gather_feature_statistics
 from models.training.train import train_default, train_readout_hyperparams
+import logging
+import time
+from datetime import datetime
+
+def get_logger(logfilename):
+    log = logging.getLogger()
+    log.setLevel(logging.DEBUG)
+    fmt = f"[%(asctime)s][%(levelname)s][%(filename)s:%(lineno)d]:%(message)s"
+    formatter = logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S")
+
+    fh=logging.FileHandler(logfilename)
+    fh.setFormatter(formatter)
+    fh.setLevel(logging.DEBUG)
+
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    ch.setFormatter(formatter)
+    log.addHandler(ch)
+    log.addHandler(fh)
+    return log
 
 if __name__ == '__main__':
+    logger = get_logger('./logs/' + datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f') + '.log')
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--workload_runs', default=None, nargs='+')
@@ -31,12 +53,13 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=0)
 
     args = parser.parse_args()
+    logger.debug(f"args {args}")
 
     if args.gather_feature_statistics:
         # gather_feature_statistics
         workload_runs = []
 
-        for wl in args.workload_runs:
+        for wl in args.workload_runs:  # if gather_feature_statistics is True, args.raw_dir should be given
             workload_runs += glob.glob(f'{args.raw_dir}/*/{wl}')
 
         gather_feature_statistics(workload_runs, args.target)

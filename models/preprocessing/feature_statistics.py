@@ -43,22 +43,25 @@ def gather_feature_statistics(workload_run_paths, target):
     categorical or numerical, different statistics are collected. This is later on used to automate the feature
     extraction during the training (e.g., how to consistently map a categorical value to an index).
     """
-
+    print(f"in gather")
     run_stats = []
     for source in tqdm(workload_run_paths):
         assert os.path.exists(source), f"{source} does not exist"
         try:
             with open(source) as json_file:
                 run_stats.append(json.load(json_file))
+                print(f"run_stats[-1] {run_stats[-1]}")
         except:
             raise ValueError(f"Could not read {source}")
     value_dict = gather_values_recursively(run_stats)
+    print(value_dict)
+    exit()
 
     print("Saving")
     # save unique values for categorical features and scale and center of RobustScaler for numerical ones
     statistics_dict = dict()
     for k, values in value_dict.items():
-        values = [v for v in values if v is not None]
+        values = [v for v in values if v is not None] # filter those are None
         if len(values) == 0:
             continue
 
@@ -79,5 +82,6 @@ def gather_feature_statistics(workload_run_paths, target):
 
     # save as json
     os.makedirs(os.path.dirname(target), exist_ok=True)
+    exit()
     with open(target, 'w') as outfile:
         json.dump(statistics_dict, outfile)

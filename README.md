@@ -1,5 +1,5 @@
 # Zero-Shot Cost Estimation Models
-
+## link: https://github.com/earthwuyang/zero-shot-cost-estimation
 A learned cost model that generalizes to unseen databases and workloads out of the box. This is the implementation
 described in
 

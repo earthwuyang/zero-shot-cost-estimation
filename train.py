@@ -26,7 +26,7 @@ def get_logger(logfilename):
     return log
 
 if __name__ == '__main__':
-    logger = get_logger('./logs/' + datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f') + '.log')
+    
 
     parser = argparse.ArgumentParser()
 
@@ -35,6 +35,7 @@ if __name__ == '__main__':
     parser.add_argument('--statistics_file', default=None)
     parser.add_argument('--raw_dir', default=None)
     parser.add_argument('--target', default=None)
+    parser.add_argument('--experiment_desc', type=str, default="")
     parser.add_argument('--loss_class_name', default='QLoss')
     parser.add_argument('--filename_model', default=None)
     parser.add_argument('--device', default='cpu')
@@ -53,6 +54,8 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=0)
 
     args = parser.parse_args()
+
+    logger = get_logger(os.path.join('./logs/',args.experiment_desc, datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f'), '.log'))
     logger.debug(f"args {args}")
 
     if args.gather_feature_statistics:

@@ -1,12 +1,14 @@
 import argparse
 import glob
+import os
+import logging
+import time
+from datetime import datetime
 
 from cross_db_benchmark.benchmark_tools.database import DatabaseSystem
 from models.preprocessing.feature_statistics import gather_feature_statistics
 from models.training.train import train_default, train_readout_hyperparams
-import logging
-import time
-from datetime import datetime
+
 
 def get_logger(logfilename):
     log = logging.getLogger()

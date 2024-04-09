@@ -10,13 +10,14 @@ from models.preprocessing.feature_statistics import gather_feature_statistics
 from models.training.train import train_default, train_readout_hyperparams
 
 
-def get_logger(logfilename):
+def get_logger(logfile):
+
     log = logging.getLogger()
     log.setLevel(logging.DEBUG)
     fmt = f"[%(asctime)s][%(levelname)s][%(filename)s:%(lineno)d]:%(message)s"
     formatter = logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S")
 
-    fh=logging.FileHandler(logfilename)
+    fh=logging.FileHandler(logfile)
     fh.setFormatter(formatter)
     fh.setLevel(logging.DEBUG)
 
@@ -57,7 +58,11 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    logger = get_logger(os.path.join('./logs/',args.experiment_desc, datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f'), '.log'))
+    logfilepath = os.path.join('./logs/',args.experiment_desc)
+    if not os.path.exists(logfilepath):
+        os.system(f"mkdir -p {logfilepath}")
+    logfile = os.path.join(logfilepath, f"{datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')}.log")
+    logger = get_logger(logfile)
     logger.debug(f"args {args}")
 
     if args.gather_feature_statistics:

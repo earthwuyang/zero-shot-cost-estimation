@@ -134,7 +134,7 @@ def parse_predicates(db_column_features, feature_statistics, filter_column, filt
     filter_node_id = len(predicate_depths)
     predicate_depths.append(depth)
 
-    print(f"########### filter_column type {type(filter_column)}")
+    # print(f"########### filter_column type {type(filter_column)}")   # types.SimpleNamespace
     # gather features
 
     # arithmetic operator

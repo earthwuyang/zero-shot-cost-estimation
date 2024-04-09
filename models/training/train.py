@@ -16,7 +16,7 @@ from models.training.utils import batch_to, flatten_dict, find_early_stopping_me
 from models.zero_shot_models.specific_models.model import zero_shot_models
 
 
-def train_epoch(epoch_stats, train_loader, model, optimizer, max_epoch_tuples, custom_batch_to=batch_to):
+def train_epoch(logger, epoch_stats, train_loader, model, optimizer, max_epoch_tuples, custom_batch_to=batch_to):
     model.train()
 
     # run remaining batches
@@ -50,7 +50,7 @@ def train_epoch(epoch_stats, train_loader, model, optimizer, max_epoch_tuples, c
     epoch_stats.update(train_time=time.perf_counter() - train_start_t, mean_loss=mean_loss, mean_rmse=mean_rmse)
 
 
-def validate_model(val_loader, model, epoch=0, epoch_stats=None, metrics=None, max_epoch_tuples=None,
+def validate_model(logger, val_loader, model, epoch=0, epoch_stats=None, metrics=None, max_epoch_tuples=None,
                    custom_batch_to=batch_to, verbose=False, log_all_queries=False):
     model.eval()
 
@@ -127,7 +127,7 @@ def optuna_intermediate_value(metrics):
     raise ValueError('Metric invalid')
 
 
-def train_model(workload_runs,
+def train_model(logger, workload_runs,
                 test_workload_runs,
                 statistics_file,
                 target_dir,
@@ -169,13 +169,13 @@ def train_model(workload_runs,
             target_test_csv_paths.append(os.path.join(target_dir, f'test_{filename_model}_{test_workload}.csv'))
 
     if len(target_test_csv_paths) > 0 and all([os.path.exists(p) for p in target_test_csv_paths]):
-        print(f"Model was already trained and tested ({target_test_csv_paths} exists)")
+        logger.info(f"Model was already trained and tested ({target_test_csv_paths} exists)")
         return
 
     # create a dataset
     loss_class_name = final_mlp_kwargs['loss_class_name']
     label_norm, feature_statistics, train_loader, val_loader, test_loaders = \
-        create_dataloader(workload_runs, test_workload_runs, statistics_file, plan_featurization_name, database,
+        create_dataloader(logger, workload_runs, test_workload_runs, statistics_file, plan_featurization_name, database,
                           val_ratio=0.15, batch_size=batch_size, shuffle=True, num_workers=num_workers,
                           pin_memory=False, limit_queries=limit_queries,
                           limit_queries_affected_wl=limit_queries_affected_wl, loss_class_name=loss_class_name)
@@ -197,23 +197,23 @@ def train_model(workload_runs,
                                        **model_kwargs)
     # move to gpu
     model = model.to(model.device)
-    print(model)
-    optimizer = opt.__dict__[optimizer_class_name](model.parameters(), **optimizer_kwargs)
+    # print(model)
+    optimizer = opt.__dict__[optimizer_class_name](model.parameters(), **optimizer_kwargs)  # import torch.optim as opt
 
     csv_stats, epochs_wo_improvement, epoch, model, optimizer, metrics, finished = \
-        load_checkpoint(model, target_dir, filename_model, optimizer=optimizer, metrics=metrics, filetype='.pt')
+        load_checkpoint(logger, model, target_dir, filename_model, optimizer=optimizer, metrics=metrics, filetype='.pt')
 
     # train an actual model (q-error? or which other loss?)
     while epoch < epochs and not finished and not skip_train:
-        print(f"Epoch {epoch}")
+        logger.info(f"Epoch {epoch}")
 
         epoch_stats = copy(param_dict)
         epoch_stats.update(epoch=epoch)
         epoch_start_time = time.perf_counter()
         # try:
-        train_epoch(epoch_stats, train_loader, model, optimizer, max_epoch_tuples)
+        train_epoch(logger, epoch_stats, train_loader, model, optimizer, max_epoch_tuples)
 
-        any_best_metric = validate_model(val_loader, model, epoch=epoch, epoch_stats=epoch_stats, metrics=metrics,
+        any_best_metric = validate_model(logger, val_loader, model, epoch=epoch, epoch_stats=epoch_stats, metrics=metrics,
                                          max_epoch_tuples=max_epoch_tuples)
         epoch_stats.update(epoch=epoch, epoch_time=time.perf_counter() - epoch_start_time)
 
@@ -222,7 +222,7 @@ def train_model(workload_runs,
             intermediate_value = optuna_intermediate_value(metrics)
             epoch_stats['optuna_intermediate_value'] = intermediate_value
 
-            print(f"Reporting epoch_no={epoch}, intermediate_value={intermediate_value} to optuna "
+            logger.info(f"Reporting epoch_no={epoch}, intermediate_value={intermediate_value} to optuna "
                   f"(Trial {trial.number})")
             trial.report(intermediate_value, epoch)
 
@@ -241,13 +241,13 @@ def train_model(workload_runs,
             stop_early = True
 
         epoch_stats.update(stop_early=stop_early)
-        print(f"epochs_wo_improvement: {epochs_wo_improvement}")
+        logger.info(f"epochs_wo_improvement: {epochs_wo_improvement}")
 
         # save stats to file
         csv_stats.append(epoch_stats)
 
         # save current state of training allowing us to resume if this is stopped
-        save_checkpoint(epochs_wo_improvement, epoch, model, optimizer, target_dir,
+        save_checkpoint(logger, epochs_wo_improvement, epoch, model, optimizer, target_dir,
                         filename_model, metrics=metrics, csv_stats=csv_stats, finished=stop_early)
 
         epoch += 1
@@ -257,7 +257,7 @@ def train_model(workload_runs,
             raise optuna.TrialPruned()
 
         if stop_early:
-            print(f"Early stopping kicked in due to no improvement in {early_stopping_patience} epochs")
+            logger.info(f"Early stopping kicked in due to no improvement in {early_stopping_patience} epochs")
             break
         # except:
         #     print("Error during epoch. Trying again.")
@@ -267,25 +267,25 @@ def train_model(workload_runs,
         if not (target_dir is None or filename_model is None):
             assert len(target_test_csv_paths) == len(test_loaders)
             for test_path, test_loader in zip(target_test_csv_paths, test_loaders):
-                print(f"Starting validation for {test_path}")
+                logger.info(f"Starting validation for {test_path}")
                 test_stats = copy(param_dict)
 
                 early_stop_m = find_early_stopping_metric(metrics)
-                print("Reloading best model")
+                logger.info("Reloading best model")
                 model.load_state_dict(early_stop_m.best_model)
-                validate_model(test_loader, model, epoch=epoch, epoch_stats=test_stats, metrics=metrics,
+                validate_model(logger, test_loader, model, epoch=epoch, epoch_stats=test_stats, metrics=metrics,
                                log_all_queries=True)
 
                 save_csv([test_stats], test_path)
 
         else:
-            print("Skipping saving the test stats")
+            logger.info("Skipping saving the test stats")
 
     if trial is not None:
         return optuna_intermediate_value(metrics)
 
 
-def train_default(workload_runs,
+def train_default(logger, workload_runs,
                   test_workload_runs,
                   statistics_file,
                   target_dir, filename_model,
@@ -343,11 +343,11 @@ def train_default(workload_runs,
                         )
     param_dict = flatten_dict(train_kwargs)
 
-    train_model(workload_runs, test_workload_runs, statistics_file, target_dir, filename_model, param_dict=param_dict,
+    train_model(logger, workload_runs, test_workload_runs, statistics_file, target_dir, filename_model, param_dict=param_dict,
                 database=database, **train_kwargs)
 
 
-def train_readout_hyperparams(workload_runs,
+def train_readout_hyperparams(logger, workload_runs,
                               test_workload_runs,
                               statistics_file,
                               target_dir, filename_model,
@@ -366,7 +366,7 @@ def train_readout_hyperparams(workload_runs,
     """
     Reads out hyperparameters and trains model
     """
-    print(f"Reading hyperparameters from {hyperparameter_path}")
+    logger.info(f"Reading hyperparameters from {hyperparameter_path}")
     hyperparams = load_json(hyperparameter_path, namespace=False)
 
     p_dropout = hyperparams.pop('p_dropout')
@@ -403,7 +403,7 @@ def train_readout_hyperparams(workload_runs,
                         node_type_kwargs=node_type_kwargs,
                         tree_layer_kwargs=tree_layer_kwargs,
                         tree_layer_name=hyperparams.pop('tree_layer_name'),
-                        plan_featurization_name=hyperparams.pop('plan_featurization_name'),
+                        plan_featurization_name=hyperparams.pop('plan_featurization_name'),  # 'PostgresEstSystemCardDetail' in tune_est_best_config.json, while 'PostgresTrueCardDetail' is the default as defined in train_default(), the third one is 'PostgresDeepDBEstSystemCardDetail'
                         hidden_dim=hyperparams.pop('hidden_dim'),
                         output_dim=1,
                         epochs=200 if max_no_epochs is None else max_no_epochs,
@@ -422,5 +422,5 @@ def train_readout_hyperparams(workload_runs,
                                   f"and reading does not seem to fit"
 
     param_dict = flatten_dict(train_kwargs)
-    train_model(workload_runs, test_workload_runs, statistics_file, target_dir, filename_model,
+    train_model(logger, workload_runs, test_workload_runs, statistics_file, target_dir, filename_model,
                 param_dict=param_dict, database=database, **train_kwargs)

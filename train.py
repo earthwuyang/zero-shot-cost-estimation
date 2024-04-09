@@ -62,19 +62,19 @@ if __name__ == '__main__':
         for wl in args.workload_runs:  # if gather_feature_statistics is True, args.raw_dir should be given
             workload_runs += glob.glob(f'{args.raw_dir}/*/{wl}')
 
-        gather_feature_statistics(workload_runs, args.target)
+        gather_feature_statistics(logger, workload_runs, args.target)
 
     if args.train_model:
         if args.hyperparameter_path is None:
             # for testing
-            train_default(args.workload_runs, args.test_workload_runs, args.statistics_file, args.target,
+            train_default(logger, args.workload_runs, args.test_workload_runs, args.statistics_file, args.target,
                           args.filename_model, plan_featurization=args.plan_featurization, device=args.device,
                           num_workers=args.num_workers, max_epoch_tuples=args.max_epoch_tuples,
                           seed=args.seed, database=args.database, limit_queries=args.limit_queries,
                           limit_queries_affected_wl=args.limit_queries_affected_wl, max_no_epochs=args.max_no_epochs,
                           skip_train=args.skip_train, loss_class_name=args.loss_class_name)
         else:
-            train_readout_hyperparams(args.workload_runs, args.test_workload_runs, args.statistics_file, args.target,
+            train_readout_hyperparams(logger, args.workload_runs, args.test_workload_runs, args.statistics_file, args.target,
                                       args.filename_model, args.hyperparameter_path, device=args.device,
                                       num_workers=args.num_workers, max_epoch_tuples=args.max_epoch_tuples,
                                       seed=args.seed, database=args.database, limit_queries=args.limit_queries,

@@ -2,14 +2,14 @@
 # batch_size=256 -> 1068MiB, Now change to batch_size=2048
 python train.py  --train_model --skip_train \
  --statistics_file ../zero-shot-data/runs/deepdb_augmented/statistics_workload_combined.json  \
- --target ../zero-shot-data/evaluation/db_generalization_tune_est/  \
+ --target ../zero-shot-data/evaluation/db_generalization_tune_est  \
  --hyperparameter_path setup/tuned_hyperparameters/tune_est_best_config.json  \
  --max_epoch_tuples 100000  \
  --loss_class_name QLoss   \
  --device cuda:0  \
- --filename_model imdb_0  \
+ --filename_model tpch_0  \
  --num_workers 16  \
- --database postgres  \
+ --database postgres  \  # here database means database system
  --seed 0 \
  --workload_runs ../zero-shot-data/runs/deepdb_augmented/airline/index_workload_100k_s2_c8220.json \
  ../zero-shot-data/runs/deepdb_augmented/airline/workload_100k_s1_c8220.json \

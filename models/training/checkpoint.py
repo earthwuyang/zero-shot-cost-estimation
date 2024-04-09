@@ -7,7 +7,7 @@ import joblib
 import torch
 
 
-def torch_save(checkpoint, target_path, model_name, postfix='', filetype='.m'):
+def torch_save(logger, checkpoint, target_path, model_name, postfix='', filetype='.m'):
     save_start_t = time.perf_counter()
     if not (target_path is None or model_name is None):
         os.makedirs(target_path, exist_ok=True)
@@ -18,9 +18,9 @@ def torch_save(checkpoint, target_path, model_name, postfix='', filetype='.m'):
         target_m_path = os.path.join(target_path, f'{model_name}{postfix}{filetype}')
         shutil.move(target_temp_m_path, target_m_path)
 
-        print(f"Saved checkpoint to {target_m_path} in {time.perf_counter() - save_start_t:.3f} secs")
+        logger.info(f"Saved checkpoint to {target_m_path} in {time.perf_counter() - save_start_t:.3f} secs")
     else:
-        print("Skipping saving")
+        logger.info("Skipping saving")
 
 
 def save_csv(csv_rows, target_csv_path):
@@ -40,7 +40,7 @@ def save_csv(csv_rows, target_csv_path):
             w.writerow(row)
 
 
-def save_checkpoint(epochs_wo_improvement, epoch, model, optimizer, target_path, model_name, metrics,
+def save_checkpoint(logger, epochs_wo_improvement, epoch, model, optimizer, target_path, model_name, metrics,
                     csv_stats, finished=False):
     checkpoint = {
         'epochs_wo_improvement': epochs_wo_improvement,
@@ -54,7 +54,7 @@ def save_checkpoint(epochs_wo_improvement, epoch, model, optimizer, target_path,
             checkpoint[m.metric_name + '_best_model'] = m.best_model
             checkpoint[m.metric_name + '_best_seen_value'] = m.best_seen_value
 
-    torch_save(checkpoint, target_path, model_name, filetype='.pt')
+    torch_save(logger, checkpoint, target_path, model_name, filetype='.pt')
 
     if not (target_path is None or model_name is None):
         target_csv_path = os.path.join(target_path, f'{model_name}.csv')
@@ -63,7 +63,7 @@ def save_checkpoint(epochs_wo_improvement, epoch, model, optimizer, target_path,
             label_norm_path = os.path.join(target_path, f'{model_name}_label_norm.pkl')
             joblib.dump(model.label_norm, label_norm_path, compress=1)
     else:
-        print("Skipping saving the epoch stats")
+        logger.info("Skipping saving the epoch stats")
 
 
 def load_stats_csv(target_csv_path):
@@ -75,7 +75,7 @@ def load_stats_csv(target_csv_path):
     return csv_rows
 
 
-def load_checkpoint(model, target_path, model_name, filetype='.pt', optimizer=None, metrics=None):
+def load_checkpoint(logger, model, target_path, model_name, filetype='.pt', optimizer=None, metrics=None):
     """
     Load all training state from a checkpoint. Does not work across devices (e.g., GPU->CPU).
     """
@@ -93,7 +93,7 @@ def load_checkpoint(model, target_path, model_name, filetype='.pt', optimizer=No
             model.load_state_dict(checkpoint['model'])
 
             # read label normalizer
-            label_norm_path = os.path.join(target_path, f'{model_name}_label_norm.pkl')
+            label_norm_path = os.path.join(target_path, f'{model_name}_label_norm.pkl')  # model_name = args.filename_model
             if os.path.exists(label_norm_path):
                 model.label_norm = joblib.load(label_norm_path)
 
@@ -110,8 +110,9 @@ def load_checkpoint(model, target_path, model_name, filetype='.pt', optimizer=No
             csv_stats = load_stats_csv(target_csv_path)
             epoch += 1
 
-            print(f"Successfully loaded checkpoint from epoch {epoch} ({len(csv_stats)} csv rows) "
-                  f"in {time.perf_counter() - load_start_t:.3f} secs")
+            logger.info(f"Successfully loaded checkpoint from epoch {epoch} ({len(csv_stats)} csv rows) "
+                  f"in {time.perf_counter() - load_start_t:.3f} secs") 
+            # 用于返回当前系统的高精度性能计数器的值。它返回一个表示自程序运行以来经过的时间的浮点数。time.perf_counter()函数通常用于性能计时和时间差的测量。它返回的值的单位取决于具体的操作系统，但通常是秒或毫秒的精确度。这个函数返回的值是在整个系统中是单调递增的，因此可以用来衡量不同操作的执行时间。
 
         # reset to defaults if something goes wrong
         except Exception as e:
@@ -119,8 +120,8 @@ def load_checkpoint(model, target_path, model_name, filetype='.pt', optimizer=No
             epoch = 0
             finished = False
             csv_stats = []
-            print(f"No valid checkpoint found {e}")
+            logger.info(f"No valid checkpoint found {e}")
     else:
-        print("Filetype or model name are None")
+        logger.info("Filetype or model name are None")
 
     return csv_stats, epochs_wo_improvement, epoch, model, optimizer, metrics, finished

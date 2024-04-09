@@ -12,15 +12,16 @@ from models.preprocessing.feature_statistics import FeatureType
 
 def encode(column, plan_params, feature_statistics):
     #  fallback in case actual cardinality is not in plan parameters
-    if column == 'act_card' and column not in plan_params:
+    if column == 'act_card' and column not in plan_params:  # wuy(2024.4.9): in my current reverse engineering, 'act_card' alwasy in plan_params
         value = 0
     else:
         value = plan_params[column]
-    if feature_statistics[column].get('type') == str(FeatureType.numeric):
+
+    if feature_statistics[column].get('type') == str(FeatureType.numeric):  # FeatureType(enum) has numeric and categorical
         enc_value = feature_statistics[column]['scaler'].transform(np.array([[value]])).item()
     elif feature_statistics[column].get('type') == str(FeatureType.categorical):
         value_dict = feature_statistics[column]['value_dict']
-        enc_value = value_dict[str(value)]
+        enc_value = value_dict[str(value)]  # wuy: I think value is always str if featuretype is categorical.
     else:
         raise NotImplementedError
     return enc_value
@@ -31,17 +32,19 @@ def plan_to_graph(node, database_id, plan_depths, plan_features, plan_to_plan_ed
                   column_to_output_column_edges, column_features, table_features, table_to_plan_edges,
                   output_column_idx, column_idx, table_idx, plan_featurization, predicate_depths, intra_predicate_edges,
                   logical_preds, parent_node_id=None, depth=0):
-    plan_node_id = len(plan_depths)
+    plan_node_id = len(plan_depths) # plan_node_id is auto incremental
     plan_depths.append(depth)
 
     # add plan features
-    plan_params = vars(node.plan_parameters)
+    plan_params = vars(node.plan_parameters)  # vars() argument has a __dict__ attribute , plan_parameters is {op_name, est_startup_cost, est_cost, est_card, est_width, act_startup_cost, act_time, act_card, output_columns, act_children_card, est_children_card, workers_planned, dd_est_card, dd_est_children_card}
+    
+    # encode() normalizes a numerical value and transforms a categorical value to its index, as defined in the feature_statistics file.
     curr_plan_features = [encode(column, plan_params, feature_statistics) for column in
-                          plan_featurization.PLAN_FEATURES]
+                          plan_featurization.PLAN_FEATURES]  # PostgresEstSystemCardDetail.PLAN_FEATURES = ['est_card', 'est_width', 'workers_planned', 'op_name', 'est_children_card']
     plan_features.append(curr_plan_features)
 
     # encode output columns which can in turn have several columns as a product in the aggregation
-    output_columns = plan_params.get('output_columns')
+    output_columns = plan_params.get('output_columns')  # example output:  plan['plan_parameters']['output_columns']: [{'aggregation': 'AVG', 'columns': [23]}, {'aggregation': 'AVG', 'columns': [21]}]
     if output_columns is not None:
         for output_column in output_columns:
             output_column_node_id = output_column_idx.get(
@@ -55,10 +58,10 @@ def plan_to_graph(node, database_id, plan_depths, plan_features, plan_to_plan_ed
                 output_column_node_id = len(output_column_features)
                 output_column_features.append(curr_output_column_features)
                 output_column_idx[(output_column.aggregation, tuple(output_column.columns), database_id)] \
-                    = output_column_node_id
+                    = output_column_node_id   # output_column_idx is a dict
 
                 # featurize product of columns if there are any
-                db_column_features = db_statistics[database_id].column_stats
+                db_column_features = db_statistics[database_id].column_stats  # each database_id acturally refers to a workload_run json file as defined in read_workload_run function
                 for column in output_column.columns:
                     column_node_id = column_idx.get((column, database_id))
                     if column_node_id is None:
@@ -73,9 +76,8 @@ def plan_to_graph(node, database_id, plan_depths, plan_features, plan_to_plan_ed
             # in any case add the corresponding edge
             output_column_to_plan_edges.append((output_column_node_id, plan_node_id))
 
-    # filter_columns (we do not reference the filter columns to columns since we anyway have to create a node per filter
-    #  node)
-    filter_column = plan_params.get('filter_columns')
+    # filter_columns (we do not reference the filter columns to columns since we anyway have to create a node per filter node)
+    filter_column = plan_params.get('filter_columns') # wuy: plan_params has no key 'filter_columns'?
     if filter_column is not None:
         db_column_features = db_statistics[database_id].column_stats
 
@@ -84,7 +86,7 @@ def plan_to_graph(node, database_id, plan_depths, plan_features, plan_to_plan_ed
 
         parse_predicates(db_column_features, feature_statistics, filter_column, filter_to_plan_edges,
                          plan_featurization, predicate_col_features, predicate_depths, intra_predicate_edges,
-                         logical_preds, plan_node_id=plan_node_id)
+                         logical_preds, plan_node_id=plan_node_id)  # parent_filter_node_id=None, depth=0
 
     # tables
     table = plan_params.get('table')
@@ -94,7 +96,7 @@ def plan_to_graph(node, database_id, plan_depths, plan_features, plan_to_plan_ed
 
         if table_node_id is None:
             curr_table_features = [encode(feature_name, vars(db_table_statistics[table]), feature_statistics)
-                                   for feature_name in plan_featurization.TABLE_FEATURES]
+                                   for feature_name in plan_featurization.TABLE_FEATURES]  # ['reltuples', 'relpages']
             table_node_id = len(table_features)
             table_features.append(curr_table_features)
             table_idx[(table, database_id)] = table_node_id
@@ -132,8 +134,11 @@ def parse_predicates(db_column_features, feature_statistics, filter_column, filt
     filter_node_id = len(predicate_depths)
     predicate_depths.append(depth)
 
+    print(f"########### filter_column type {type(filter_column)}")
     # gather features
-    if filter_column.operator in {str(op) for op in list(Operator)}:
+
+    # arithmetic operator
+    if filter_column.operator in {str(op) for op in list(Operator)}:  # NEQ = '!=', EQ = '=', LEQ = '<=', GEQ = '>=', LIKE = 'LIKE', NOT_LIKE = 'NOT LIKE', IS_NOT_NULL = 'IS NOT NULL', IS_NULL = 'IS NULL', IN = 'IN', BETWEEN = 'BETWEEN'
         curr_filter_features = [encode(feature_name, vars(filter_column), feature_statistics)
                                 for feature_name in plan_featurization.FILTER_FEATURES]
 
@@ -148,10 +153,10 @@ def parse_predicates(db_column_features, feature_statistics, filter_column, filt
             curr_filter_col_feats = [0 for _ in plan_featurization.COLUMN_FEATURES]
         curr_filter_features += curr_filter_col_feats
         logical_preds.append(False)
-
+    # logical operator
     else:
         curr_filter_features = [encode(feature_name, vars(filter_column), feature_statistics)
-                                for feature_name in plan_featurization.FILTER_FEATURES]
+                                for feature_name in plan_featurization.FILTER_FEATURES]  # FILTER_FEATURES: ['operator', 'literal_feature']+
         logical_preds.append(True)
 
     predicate_col_features.append(curr_filter_features)
@@ -178,8 +183,8 @@ def postgres_plan_collator(plans, feature_statistics=None, db_statistics=None, p
     Combines physical plans into a large graph that can be fed into ML models.
     :return:
     """
-    # readout how to featurize join plans
-    plan_featurization = postgres_plan_featurizations.__dict__[plan_featurization_name]
+    # readout how to featurize join plans, defined in models/dataset/plan_featurization/postgres_plan_featurizations
+    plan_featurization = postgres_plan_featurizations.__dict__[plan_featurization_name] # 'PostgresEstSystemCardDetail' in tune_est_best_config.json, while 'PostgresTrueCardDetail' is the default as defined in train_default(), the third one is 'PostgresDeepDBEstSystemCardDetail'
 
     # output:
     #   - list of labels (i.e., plan runtimes)
@@ -234,7 +239,8 @@ def postgres_plan_collator(plans, feature_statistics=None, db_statistics=None, p
     assert len(labels) == len(plans)
     assert len(plan_depths) == len(plan_features)
 
-    data_dict, nodes_per_depth, plan_dict = create_node_types_per_depth(plan_depths, plan_to_plan_edges)
+    data_dict, nodes_per_depth, plan_dict = create_node_types_per_depth(plan_depths, plan_to_plan_edges)  
+    # data_dict[(f'plan{d_u}', f'intra_plan', f'plan{d_v}')].append((u_node_id, v_node_id))
 
     # similarly create node types:
     #   pred_node_{depth}, filter column
@@ -251,8 +257,7 @@ def postgres_plan_collator(plans, feature_statistics=None, db_statistics=None, p
             pred_dict[pred_node] = no_filter_columns
             no_filter_columns += 1
 
-    adapt_predicate_edges(data_dict, filter_to_plan_edges, intra_predicate_edges, logical_preds, plan_dict, pred_dict,
-                          pred_node_type_id)
+    adapt_predicate_edges(data_dict, filter_to_plan_edges, intra_predicate_edges, logical_preds, plan_dict, pred_dict, pred_node_type_id)  # pred_node_type_id is a function
 
     # we additionally have filters, tables, columns, output_columns and plan nodes as node types
     data_dict[('column', 'col_output_col', 'output_column')] = column_to_output_column_edges
@@ -271,11 +276,13 @@ def postgres_plan_collator(plans, feature_statistics=None, db_statistics=None, p
         'output_column': len(output_column_features),
         'filter_column': len(logical_preds) - sum(logical_preds),
     }
+
+    # update 'plan{d}' and 'logical_pred_{d}' and filter out any node type with zero nodes
     num_nodes_dict = update_node_counts(max_depth, max_pred_depth, nodes_per_depth, nodes_per_pred_depth,
-                                        num_nodes_dict)
+                                        num_nodes_dict) 
 
     # create graph
-    graph = dgl.heterograph(data_dict, num_nodes_dict=num_nodes_dict)
+    graph = dgl.heterograph(data_dict, num_nodes_dict=num_nodes_dict) # idtype, device
     graph.max_depth = max_depth
     graph.max_pred_depth = max_pred_depth
 
@@ -291,13 +298,13 @@ def postgres_plan_collator(plans, feature_statistics=None, db_statistics=None, p
     for pred_node_id, pred_feat in enumerate(filter_features):
         if not logical_preds[pred_node_id]:
             continue
-        node_type, _ = pred_node_type_id(logical_preds, pred_dict, pred_node_id)
+        node_type, _ = pred_node_type_id(logical_preds, pred_dict, pred_node_id)  # node_type = f'logical_pred_{depth}'
         features[node_type].append(pred_feat)
 
     features = postprocess_feats(features, num_nodes_dict)
 
     # rather deal with runtimes in secs
-    labels = postprocess_labels(labels)
+    labels = postprocess_labels(labels)  # original plan['plan_runtime'] is in miliseconds
 
     return graph, features, labels, sample_idxs
 
@@ -346,7 +353,8 @@ def adapt_predicate_edges(data_dict, filter_to_plan_edges, intra_predicate_edges
         # transform plan node to right id and depth
         v_node_id, d_v = plan_dict[v]
         # transform predicate node to right node type and id
-        node_type, u_node_id = pred_node_type_id_func(logical_preds, pred_dict, u)
+        node_type, u_node_id = pred_node_type_id_func(logical_preds, pred_dict, u) # logical predicate or arithmetic predicate
+        # node_type is  f'logical_pred_{depth}' or f'filter_column'
 
         data_dict[(node_type, 'to_plan', f'plan{d_v}')].append((u_node_id, v_node_id))
     # convert intra predicate edges (e.g. column to AND)
@@ -360,16 +368,16 @@ def create_node_types_per_depth(plan_depths, plan_to_plan_edges):
     # now create heterograph with node types: table, column, filter_column, logical_pred, output_column, plan{depth}
     # for this, first create mapping of old plan node id -> depth and node id for depth
     plan_dict = dict()
-    nodes_per_depth = collections.defaultdict(int)
-    for plan_node, d in enumerate(plan_depths):
+    nodes_per_depth = collections.defaultdict(int)  # default return 0
+    for plan_node, d in enumerate(plan_depths):  # plan_node is integer
         plan_dict[plan_node] = (nodes_per_depth[d], d)
         nodes_per_depth[d] += 1
     # create edge and node types depending on depth in the plan
     data_dict = collections.defaultdict(list)
     for u, v in plan_to_plan_edges:
-        u_node_id, d_u = plan_dict[u]
+        u_node_id, d_u = plan_dict[u]  # plan_dict[plan_node] = (nodes_per_depth[d], d)
         v_node_id, d_v = plan_dict[v]
-        assert d_v < d_u
+        assert d_v < d_u  # because u is plan_node_id, v is paranet_node_id, plan_node_id is created later than parent_node_id
         data_dict[(f'plan{d_u}', f'intra_plan', f'plan{d_v}')].append((u_node_id, v_node_id))
     return data_dict, nodes_per_depth, plan_dict
 
@@ -385,9 +393,12 @@ def add_numerical_scalers(feature_statistics):
 
 def pred_node_type_id(logical_preds, pred_dict, u):
     if logical_preds[u]:
-        u_node_id, depth = pred_dict[u]
+        u_node_id, depth = pred_dict[u]  # pred_dict[pred_node] = (nodes_per_pred_depth[d], d)
         node_type = f'logical_pred_{depth}'
     else:
-        u_node_id = pred_dict[u]
+        u_node_id = pred_dict[u]  # pred_dict[pred_node] = no_filter_columns
         node_type = f'filter_column'
     return node_type, u_node_id
+
+
+            

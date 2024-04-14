@@ -30,22 +30,23 @@ class ZeroShotModel(FcOutModel):
         self.hidden_dim = hidden_dim
 
         # use different models per edge type
-        tree_model_types = add_tree_model_types + ['to_plan', 'intra_plan', 'intra_pred']
+        tree_model_types = add_tree_model_types + ['to_plan', 'intra_plan', 'intra_pred'] 
+        # add_tree_model_types = column_output_column from PostgresZeroShotModel
         self.tree_models = nn.ModuleDict({
-            node_type: message_aggregators.__dict__[tree_layer_name](hidden_dim=self.hidden_dim, **tree_layer_kwargs)
-            for node_type in tree_model_types
+            node_type: message_aggregators.__dict__[tree_layer_name](hidden_dim=self.hidden_dim, **tree_layer_kwargs)  # tree_layer_name= "MscnConv" as defined in tune_est_best_config.json
+            for node_type in tree_model_types  # ['column_output_column', 'to_plan', 'intra_plan', 'intra_pred']
         })
 
         # these message passing steps are performed in the beginning (dependent on the concrete database system at hand)
-        self.prepasses = prepasses
+        self.prepasses = prepasses  # [dict(model_name='column_output_column', e_name='col_output_col')] as defined in PostgresZeroShotModel
 
-        if plan_featurization is not None:
+        if plan_featurization is not None:  # plan_featurization is PostgresEstSystemCardDetail class as defined in postgres_plan_featurizations.py
             self.plan_featurization = plan_featurization
             # different models to encode plans, tables, columns, filter_columns and output_columns
             node_type_kwargs.update(output_dim=hidden_dim)
             self.node_type_encoders = nn.ModuleDict({
                 enc_name: NodeTypeEncoder(features, feature_statistics, **node_type_kwargs)
-                for enc_name, features in encoders
+                for enc_name, features in encoders  # encoders has: column, table, output_column, filter_columns, plan, logical_pred
             })
 
     def encode_node_types(self, g, features):

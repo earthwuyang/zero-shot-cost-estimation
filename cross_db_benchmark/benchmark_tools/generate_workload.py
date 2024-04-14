@@ -205,7 +205,7 @@ class GenQuery:
 
             join_str = repl_alias(self.start_t)
             for table_l, column_l, table_r, column_r, left_outer in self.joins:
-                join_kw = "JOIN" if left_outer else "LEFT OUTER JOIN"
+                join_kw = "JOIN" if not left_outer else "LEFT OUTER JOIN"  # join_kw = "JOIN" if left_outer else "LEFT OUTER JOIN", modified as mentioned in the github issue
                 join_str += f' {join_kw} {repl_alias(table_r)}'
                 join_cond = ' AND '.join([f'{repl_alias(table_l, no_alias_intro=True)}."{col_l}" = '
                                           f'{repl_alias(table_r, no_alias_intro=True)}."{col_r}"'

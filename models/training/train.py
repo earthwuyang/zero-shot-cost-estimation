@@ -136,7 +136,7 @@ def train_model(logger, workload_runs,
                 optimizer_kwargs=None,
                 final_mlp_kwargs=None,
                 node_type_kwargs=None,
-                model_kwargs=None,
+                model_kwargs=None,  
                 tree_layer_name='GATConv',
                 tree_layer_kwargs=None,
                 hidden_dim=32,
@@ -146,7 +146,7 @@ def train_model(logger, workload_runs,
                 device='cpu',
                 plan_featurization_name=None,
                 max_epoch_tuples=100000,
-                param_dict=None,
+                param_dict=None,  # param_dict=param_dict
                 num_workers=1,
                 early_stopping_patience=20,
                 trial=None,
@@ -155,7 +155,7 @@ def train_model(logger, workload_runs,
                 limit_queries_affected_wl=None,
                 skip_train=False,
                 seed=0):
-    if model_kwargs is None:
+    if model_kwargs is None: # model_kwargs is not passed from the call of train_model(), thus None
         model_kwargs = dict()
 
     # seed for reproducibility
@@ -421,6 +421,6 @@ def train_readout_hyperparams(logger, workload_runs,
     assert len(hyperparams) == 0, f"Not all hyperparams were used (not used: {hyperparams.keys()}). Hence generation " \
                                   f"and reading does not seem to fit"
 
-    param_dict = flatten_dict(train_kwargs)
+    param_dict = flatten_dict(train_kwargs)  # https://stackoverflow.com/questions/6027558/flatten-nested-dictionaries-compressing-keys
     train_model(logger, workload_runs, test_workload_runs, statistics_file, target_dir, filename_model,
                 param_dict=param_dict, database=database, **train_kwargs)

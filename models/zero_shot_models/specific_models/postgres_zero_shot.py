@@ -13,11 +13,11 @@ class PostgresZeroShotModel(ZeroShotModel):
 
             # define the MLPs for the different node types in the graph representation of queries
             encoders = [
-                ('column', plan_featurization.COLUMN_FEATURES),
-                ('table', plan_featurization.TABLE_FEATURES),
-                ('output_column', plan_featurization.OUTPUT_COLUMN_FEATURES),
-                ('filter_column', plan_featurization.FILTER_FEATURES + plan_featurization.COLUMN_FEATURES),
-                ('plan', plan_featurization.PLAN_FEATURES),
+                ('column', plan_featurization.COLUMN_FEATURES), #  ['avg_width', 'correlation', 'data_type', 'n_distinct', 'null_frac']
+                ('table', plan_featurization.TABLE_FEATURES),  # ['reltuples', 'relpages']
+                ('output_column', plan_featurization.OUTPUT_COLUMN_FEATURES), # ['aggregation']
+                ('filter_column', plan_featurization.FILTER_FEATURES + plan_featurization.COLUMN_FEATURES),  # FILTER_FEATURES = ['operator', 'literal_feature']
+                ('plan', plan_featurization.PLAN_FEATURES), # PostgresEstSystemCardDetail: ['est_card', 'est_width', 'workers_planned', 'op_name', 'est_children_card']
                 ('logical_pred', plan_featurization.FILTER_FEATURES),
             ]
 

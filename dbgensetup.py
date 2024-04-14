@@ -67,7 +67,7 @@ if __name__ == '__main__':
                         metavar="KEY1=VAL1,KEY2=VAL2...")
     parser.add_argument("--database_kwargs", dest='database_kwarg_dict', action=StoreDictKeyPair,
                         metavar="KEY1=VAL1,KEY2=VAL2...")
-    parser.add_argument('--hardware', default='c8220')
+    parser.add_argument('--hardware', default='c8220')  # c8220
 
     parser.add_argument('--raw_dir', default=None)
     parser.add_argument('--dataset', default=None)
@@ -140,9 +140,12 @@ if __name__ == '__main__':
         for dataset in ext_database_list:
             for database in [DatabaseSystem.POSTGRES]:
                 curr_data_dir = os.path.join(args.data_dir, dataset.data_folder)
-                print(f"Loading database {dataset.db_name} from {curr_data_dir}")
-                load_database(curr_data_dir, dataset.source_dataset, database, dataset.db_name, args.database_conn_dict,
-                              args.database_kwarg_dict)
+                if os.path.exists(curr_data_dir):
+                    print(f"Loading database {dataset.db_name} from {curr_data_dir}")
+                    load_database(curr_data_dir, dataset.source_dataset, database, dataset.db_name, args.database_conn_dict,
+                                args.database_kwarg_dict)
+                else:
+                    print(f"{curr_data_dir} does not exist")
 
     if args.generate_workloads:
         workload_gen_setups = []

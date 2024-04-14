@@ -92,14 +92,14 @@ def validate_model(logger, val_loader, model, epoch=0, epoch_stats=None, metrics
             epoch_stats.update(val_time=time.perf_counter() - test_start_t)
             epoch_stats.update(val_num_tuples=val_num_tuples)
             val_loss = (val_loss.cpu() / len(val_loader)).item()
-            print(f'val_loss epoch {epoch}: {val_loss}')
+            logger.info(f'val_loss epoch {epoch}: {val_loss}')
             epoch_stats.update(val_loss=val_loss)
 
         labels = np.concatenate(labels, axis=0)
         preds = np.concatenate(preds, axis=0)
         if verbose:
-            print(f'labels: {labels}')
-            print(f'preds: {preds}')
+            logger.debug(f'labels: {labels}')
+            logger.debug(f'preds: {preds}')
         epoch_stats.update(val_std=np.std(labels))
         if log_all_queries:
             epoch_stats.update(val_labels=[float(f) for f in labels])
@@ -114,7 +114,7 @@ def validate_model(logger, val_loader, model, epoch=0, epoch_stats=None, metrics
                                             probs=probs)
                 if best_seen and metric.early_stopping_metric:
                     any_best_metric = True
-                    print(f"New best model for {metric.metric_name}")
+                    logger.infof(f"New best model for {metric.metric_name}")
 
     return any_best_metric
 

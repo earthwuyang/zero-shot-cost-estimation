@@ -35,6 +35,8 @@ def gen_run_workload_commands(workload_name=None, database_conn='user=postgres,p
 
     exp_commands = []
     for dataset in db_list:
+        # if not dataset.db_name in ['airline', 'imdb', 'ssb', 'tpc_h']:  # wuy: currently I only have these 4 datasets
+        #     continue
         if datasets is not None and dataset.db_name not in datasets:
             continue
         exp_commands.append(f"""python3 run_benchmark.py 

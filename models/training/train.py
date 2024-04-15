@@ -114,7 +114,7 @@ def validate_model(logger, val_loader, model, epoch=0, epoch_stats=None, metrics
                                             probs=probs)
                 if best_seen and metric.early_stopping_metric:
                     any_best_metric = True
-                    logger.info(f"New best model for {metric.metric_name}")
+                    logger.infof(f"New best model for {metric.metric_name}")
 
     return any_best_metric
 

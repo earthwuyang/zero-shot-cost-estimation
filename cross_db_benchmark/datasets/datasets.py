@@ -36,6 +36,7 @@ source_dataset_list = [
     SourceDataset('imdb'),
     SourceDataset('ssb'),
     SourceDataset('tpc_h'),
+    # SourceDataset('tpc_ds'),
     SourceDataset('walmart'),
     SourceDataset('financial'),
     SourceDataset('basketball'),
@@ -60,6 +61,7 @@ database_list = [
     Database('imdb'),
     Database('ssb', max_no_joins=3),
     Database('tpc_h', max_no_joins=5),
+    # Database('tpc_ds', max_no_joins=2),
     Database('walmart', max_no_joins=2),
     # scaled batch 1
     Database('financial', _data_folder='scaled_financial', scale=4),

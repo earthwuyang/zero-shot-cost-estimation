@@ -57,7 +57,7 @@ class ZeroShotModel(FcOutModel):
         hidden_dict = dict()
         for node_type, input_features in features.items():
             # encode all plans with same model
-            if node_type not in self.node_type_encoders.keys():
+            if node_type not in self.node_type_encoders.keys(): # node_type_encoders.keys(): column, table, output_column, filter_columns,  plan, logical_pred
                 assert node_type.startswith('plan') or node_type.startswith('logical_pred')
 
                 if node_type.startswith('logical_pred'):
@@ -66,7 +66,7 @@ class ZeroShotModel(FcOutModel):
                     node_type_m = self.node_type_encoders['plan']
             else:
                 node_type_m = self.node_type_encoders[node_type]
-            hidden_dict[node_type] = node_type_m(input_features)
+            hidden_dict[node_type] = node_type_m(input_features) # we might have many 'planx', 'logical_predx' encoders
 
         return hidden_dict
 

@@ -23,7 +23,10 @@ def recursive_to(iterable, device):
 
 def batch_to(batch, device, label_norm):
     graph, features, label, sample_idxs = batch
-
+    print(f"graph {graph}")
+    print(f"features {features}")
+    print(f"label {label}")
+    print(f"sample_idxs {sample_idxs}")
     # normalize the labels for training
     if label_norm is not None:
         label = label_norm.transform(label.reshape(-1,1))

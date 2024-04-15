@@ -27,7 +27,7 @@ def train_epoch(logger, epoch_stats, train_loader, model, optimizer, max_epoch_t
         if max_epoch_tuples is not None and batch_idx * train_loader.batch_size > max_epoch_tuples:
             break
 
-        input_model, label, sample_idxs = custom_batch_to(batch, model.device, model.label_norm)
+        input_model, label, sample_idxs = custom_batch_to(batch, model.device, model.label_norm)  # label_norm is returned by create_dataloader
 
         optimizer.zero_grad()
         output = model(input_model)
@@ -70,7 +70,7 @@ def validate_model(logger, val_loader, model, epoch=0, epoch_stats=None, metrics
 
             val_num_tuples += val_loader.batch_size
 
-            input_model, label, sample_idxs_batch = custom_batch_to(batch, model.device, model.label_norm)
+            input_model, label, sample_idxs_batch = custom_batch_to(batch, model.device, model.label_norm)  
             sample_idxs += sample_idxs_batch
             output = model(input_model)
 

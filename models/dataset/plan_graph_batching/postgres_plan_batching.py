@@ -16,7 +16,8 @@ def encode(column, plan_params, feature_statistics):
         value = 0
     else:
         value = plan_params[column]
-
+    # print(f"column {column}, value {value}")
+    # print(f"column {column}, feature_statistics[column] {feature_statistics[column]}")
     if feature_statistics[column].get('type') == str(FeatureType.numeric):  # FeatureType(enum) has numeric and categorical
         enc_value = feature_statistics[column]['scaler'].transform(np.array([[value]])).item()
     elif feature_statistics[column].get('type') == str(FeatureType.categorical):

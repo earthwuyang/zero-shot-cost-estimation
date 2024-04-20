@@ -7,7 +7,7 @@ python train.py  --train_model  \
  --max_epoch_tuples 100000  \
  --loss_class_name QLoss   \
  --device cuda:0  \
- --filename_model tpch_0  \
+ --filename_model imdb_0  \
  --num_workers 16  \
  --database postgres  --seed 0 \
  --workload_runs ../zero-shot-data/runs/deepdb_augmented/airline/index_workload_100k_s2_c8220.json \

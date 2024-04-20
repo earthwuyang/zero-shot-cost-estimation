@@ -23,7 +23,8 @@ def train_epoch(logger, epoch_stats, train_loader, model, optimizer, max_epoch_t
     train_start_t = time.perf_counter()
     losses = []
     errs = []
-    for batch_idx, batch in enumerate(tqdm(train_loader)):
+    # for batch_idx, batch in enumerate(tqdm(train_loader)):
+    for batch_idx, batch in enumerate(train_loader):
         if max_epoch_tuples is not None and batch_idx * train_loader.batch_size > max_epoch_tuples:
             break
 
@@ -64,7 +65,8 @@ def validate_model(logger, val_loader, model, epoch=0, epoch_stats=None, metrics
         # evaluate test set using model
         test_start_t = time.perf_counter()
         val_num_tuples = 0
-        for batch_idx, batch in enumerate(tqdm(val_loader)):
+        # for batch_idx, batch in enumerate(tqdm(val_loader)):
+        for batch_idx, batch in enumerate(val_loader):
             if max_epoch_tuples is not None and batch_idx * val_loader.batch_size > max_epoch_tuples:
                 break
 
@@ -114,7 +116,7 @@ def validate_model(logger, val_loader, model, epoch=0, epoch_stats=None, metrics
                                             probs=probs)
                 if best_seen and metric.early_stopping_metric:
                     any_best_metric = True
-                    logger.infof(f"New best model for {metric.metric_name}")
+                    logger.info(f"New best model for {metric.metric_name}")
 
     return any_best_metric
 
@@ -368,6 +370,7 @@ def train_readout_hyperparams(logger, workload_runs,
     """
     logger.info(f"Reading hyperparameters from {hyperparameter_path}")
     hyperparams = load_json(hyperparameter_path, namespace=False)
+    logger.info(f"hyperparams {hyperparams}")
 
     p_dropout = hyperparams.pop('p_dropout')
     # general fc out

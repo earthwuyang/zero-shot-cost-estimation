@@ -22,11 +22,14 @@ class CustomEncoder(json.JSONEncoder):
             return super(CustomEncoder, self).default(obj)
 
 
-def column_stats(column, categorical_threshold=10000):
+def column_stats(column, categorical_threshold=10000):  
     """
     Default method for encoding the datasets
+
+    Args:
+    column is pandas.DataFrame
     """
-    nan_ratio = sum(column.isna()) / len(column)
+    nan_ratio = sum(column.isna()) / len(column)  # DataFrame.isna returns a boolean same-sized object indicating if the values are NA. such as None or np.NaN. Characters such as empty strings '' or numpy.inf.
     stats = dict(nan_ratio=nan_ratio)
     if column.dtype == object:
         if len(column.unique()) > categorical_threshold:

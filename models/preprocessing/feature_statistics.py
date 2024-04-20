@@ -49,7 +49,7 @@ def gather_feature_statistics(logger, workload_run_paths, target):
         try:
             with open(source) as json_file:
                 run_stats.append(json.load(json_file))
-                print(f"run_stats[-1] {run_stats[-1]}")
+                # print(f"run_stats[-1] {run_stats[-1]}")
         except:
             raise ValueError(f"Could not read {source}")
     value_dict = gather_values_recursively(run_stats)

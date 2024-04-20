@@ -63,7 +63,11 @@ if __name__ == '__main__':
         os.system(f"mkdir -p {logfilepath}")
     logfile = os.path.join(logfilepath, f"{datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')}.log")
     logger = get_logger(logfile)
-    logger.debug(f"args {args}")
+
+    if args.hyperparameter_path is None:
+        args.plan_featurization="to be read from hyperparameter path"
+    logger.debug(f"args {args}")  # the args shouldn't be logged here, because hyperparameter hasn't been read, and some args are default values.
+    
 
     if args.gather_feature_statistics:
         # gather_feature_statistics

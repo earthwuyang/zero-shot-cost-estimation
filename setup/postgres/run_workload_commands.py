@@ -35,15 +35,15 @@ def gen_run_workload_commands(workload_name=None, database_conn='user=postgres,p
 
     exp_commands = []
     for dataset in db_list:
-        # if not dataset.db_name in ['airline', 'imdb', 'ssb', 'tpc_h']:  # wuy: currently I only have these 4 datasets
-        #     continue
+        if not dataset.db_name in ['airline', 'imdb', 'ssb', 'tpc_h']:  # wuy: currently I only have these 4 datasets
+            continue
         if datasets is not None and dataset.db_name not in datasets:
             continue
         exp_commands.append(f"""python3 run_benchmark.py 
           --run_workload
           --query_timeout {query_timeout}
           --source ../zero-shot-data/workloads/{dataset.db_name}/{workload_name}.sql
-          --target ../zero-shot-data/runs/raw/{dataset.db_name}/{index_prefix}{workload_name}_[hw_placeholder].json
+          --target ../zero-shot-data/runs/raw/[hw_placeholder]/{dataset.db_name}/{index_prefix}{workload_name}_[hw_placeholder].json
           --database {database}
           --db_name {dataset.db_name}
           --database_conn {database_conn}

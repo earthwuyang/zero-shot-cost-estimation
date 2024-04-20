@@ -47,9 +47,7 @@ python train.py  --train_model \
  ../zero-shot-data/runs/deepdb_augmented/seznam/index_workload_100k_s2_c8220.json \
  ../zero-shot-data/runs/deepdb_augmented/seznam/workload_100k_s1_c8220.json \
  ../zero-shot-data/runs/deepdb_augmented/fhnk/index_workload_100k_s2_c8220.json \
- ../zero-shot-data/runs/deepdb_augmented/fhnk/workload_100k_s1_c8220.json \
- ../zero-shot-data/runs/deepdb_augmented/imdb/index_workload_100k_s2_c8220.json \
- ../zero-shot-data/runs/deepdb_augmented/imdb/workload_100k_s1_c8220.json \
+ ../zero-shot-data/runs/deepdb_augmented/fhnk/workload_100k_s1_c8220.json 
  --test_workload_runs ../zero-shot-data/runs/deepdb_augmented/imdb/index_workload_100k_s2_c8220.json \
  ../zero-shot-data/runs/deepdb_augmented/imdb/workload_100k_s1_c8220.json \
   ../zero-shot-data/runs/deepdb_augmented/imdb/synthetic_c8220.json  \
